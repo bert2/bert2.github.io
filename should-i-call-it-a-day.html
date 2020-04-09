@@ -112,7 +112,7 @@
 
             function setUrl(query) {
                 var url = location.toString().replace(location.search, '');
-                window.history.pushState('foo', 'Title', url + query);
+                window.history.replaceState({}, '360°', url + query);
             }
 
             function queryHasParamAndValue(k, v) {
