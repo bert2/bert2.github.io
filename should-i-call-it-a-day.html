@@ -23,6 +23,10 @@
                         <td><input id="break" size="2" style="text-align:center;"></td>
                     </tr>
                     <tr>
+                        <td>break only included when working at least</td>
+                        <td><input id="minWorkday" size="2" style="text-align:center;"></td>
+                    </tr>
+                    <tr>
                         <td style="padding-top:15px">
                             you better call it a day around
                         </td>
@@ -38,9 +42,10 @@
 
         <script>
             Bind({
-              start: getTime(),
+              start: moment().format('HH:mm'),
               workday: getQueryParam('workday') || 7.7,
-              _break: getQueryParam('break') || 45
+              _break: getQueryParam('break') || 45,
+              minWorkday: getQueryParam('minWorkday') || 6.0
             }, {
               start: {
                 dom: '#start',
@@ -64,21 +69,30 @@
                   setEndTime({ _break });
                   setQueryParam('break', _break);
                 }
-              }
+              },
+              minWorkday: {
+                dom: '#minWorkday',
+                callback: function() {
+                  var minWorkday = getInput('#minWorkday');
+                  setEndTime({ minWorkday });
+                  setQueryParam('minWorkday', minWorkday);
+                }
+              },
             });
 
             document.querySelector('#start').select();
 
-            function setEndTime({ start, workday, _break } = {}) {
-                var end = moment(start || getInput('#start'),'HH:mm')
-                    .add(workday || getInput('#workday'), 'hour')
-                    .add(_break || getInput('#break'), 'minute')
-                    .format('HH:mm');
-                document.querySelector('#end').value = end;
-            }
+            function setEndTime({ start, workday, _break, minWorkday } = {}) {
+                start = start || getInput('#start');
+                workday = workday || getInput('#workday');
+                _break = _break || getInput('#break');
+                minWorkday = minWorkday || getInput('#minWorkday');
 
-            function getTime() {
-                return moment().format('HH:mm');
+                var end = moment(start,'HH:mm').add(workday, 'hour');
+                end = parseFloat(workday) > parseFloat(minWorkday)
+                    ? end.add(_break, 'minute')
+                    : end;
+                document.querySelector('#end').value = end.format('HH:mm');
             }
 
             function getInput(id) {
@@ -100,7 +114,7 @@
 
             function replaceQueryParam(k, v) {
                 return location.search.replace(
-                    new RegExp('([&?])' + k + '=[^&]+'),
+                    new RegExp('([&?])' + k + '=[^&]*'),
                     '$1' + k + '=' + v);
             }
 
@@ -120,7 +134,7 @@
             }
 
             function queryHasParam(k) {
-                return new RegExp('[&?]' + k + '=[^&]+').test(location.search);
+                return new RegExp('[&?]' + k + '=[^&]*').test(location.search);
             }
 
             function queryHasNoParams() {
