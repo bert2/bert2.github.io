@@ -9,84 +9,91 @@
         <center>
             <p><img src="https://i.redd.it/emdqzy260ar41.jpg"></p>
             <p>
-                <table style="text-align:right">
+                <table>
                     <tr>
-                        <td>you started at</td>
+                        <td style="text-align:right">you started at</td>
                         <td><input id="start" size="2" style="text-align:center;"></td>
+                        <td>o'clock</td>
                     </tr>
                     <tr>
-                        <td>your work day (in hours) is</td>
+                        <td style="text-align:right">your work day has</td>
                         <td><input id="workday" size="2" style="text-align:center;"></td>
+                        <td>hours</td>
                     </tr>
                     <tr>
-                        <td>your included break (in minutes) is</td>
-                        <td><input id="break" size="2" style="text-align:center;"></td>
-                    </tr>
-                    <tr>
-                        <td>break only included when working at least</td>
-                        <td><input id="minWorkday" size="2" style="text-align:center;"></td>
-                    </tr>
-                    <tr>
+                        <td style="text-align:right;padding-top:15px">your included break is</td>
                         <td style="padding-top:15px">
-                            you better call it a day around
+                            <input id="break" size="2" style="text-align:center;">
+                        </td>
+                        <td style="padding-top:15px">minutes</td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:right">when working at least</td>
+                        <td><input id="minWorkday" size="2" style="text-align:center;"></td>
+                        <td>hours</td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:right;padding-top:15px">
+                            better call it a day around
                         </td>
                         <td style="padding-top:15px">
                             <input id="end" size="2" style="text-align:center;" readonly>
                         </td>
+                        <td style="padding-top:15px">o'clock.</td>
                     </tr>
                 </table>
             </p>
             <br>
-            <p>bookmark this page to save your settings.</p>
+            <p style="color:darkgray">bookmark this page to save your settings.</p>
         </center>
 
         <script>
             Bind({
               start: moment().format('HH:mm'),
-              workday: getQueryParam('workday') || 7.7,
-              _break: getQueryParam('break') || 45,
-              minWorkday: getQueryParam('minWorkday') || 6.0
+              workday: fromQuery('workday') || 7.7,
+              _break: fromQuery('break') || 45,
+              minWorkday: fromQuery('minWorkday') || 6.0
             }, {
               start: {
                 dom: '#start',
                 callback: function() {
-                  var start = getInput('#start');
-                  setEndTime({ start });
+                  var start = value('#start');
+                  setEnd({ start });
                 }
               },
               workday: {
                 dom: '#workday',
                 callback: function() {
-                  var workday = getInput('#workday');
-                  setEndTime({ workday });
-                  setQueryParam('workday', workday);
+                  var workday = value('#workday');
+                  setEnd({ workday });
+                  toQuery('workday', workday);
                 }
               },
               _break: {
                 dom: '#break',
                 callback: function() {
-                  var _break = getInput('#break');
-                  setEndTime({ _break });
-                  setQueryParam('break', _break);
+                  var _break = value('#break');
+                  setEnd({ _break });
+                  toQuery('break', _break);
                 }
               },
               minWorkday: {
                 dom: '#minWorkday',
                 callback: function() {
-                  var minWorkday = getInput('#minWorkday');
-                  setEndTime({ minWorkday });
-                  setQueryParam('minWorkday', minWorkday);
+                  var minWorkday = value('#minWorkday');
+                  setEnd({ minWorkday });
+                  toQuery('minWorkday', minWorkday);
                 }
               },
             });
 
             document.querySelector('#start').select();
 
-            function setEndTime({ start, workday, _break, minWorkday } = {}) {
-                start = start || getInput('#start');
-                workday = workday || getInput('#workday');
-                _break = _break || getInput('#break');
-                minWorkday = minWorkday || getInput('#minWorkday');
+            function setEnd({ start, workday, _break, minWorkday } = {}) {
+                start = start || value('#start');
+                workday = workday || value('#workday');
+                _break = _break || value('#break');
+                minWorkday = minWorkday || value('#minWorkday');
 
                 var end = moment(start,'HH:mm').add(workday, 'hour');
                 end = parseFloat(workday) > parseFloat(minWorkday)
@@ -95,33 +102,19 @@
                 document.querySelector('#end').value = end.format('HH:mm');
             }
 
-            function getInput(id) {
-                return document.querySelector(id).value;
-            }
+            function value(id) { return document.querySelector(id).value; }
 
-            function getQueryParam(k) {
+            function fromQuery(k) {
                 var match = new RegExp('[&?]' + k + '=([^&]+)').exec(location.search);
                 return match ? match[1] : undefined;
             }
 
-            function setQueryParam(k, v) {
-                if (queryHasParamAndValue(k, v)) return;
+            function toQuery(k, v) {
+                if (queryHasValue(k, v)) return;
                 var query = queryHasParam(k)
-                    ? replaceQueryParam(k, v)
-                    : appendQueryParam(k, v);
+                    ? replaceInQuery(k, v)
+                    : appendToQuery(k, v);
                 setUrl(query);
-            }
-
-            function replaceQueryParam(k, v) {
-                return location.search.replace(
-                    new RegExp('([&?])' + k + '=[^&]*'),
-                    '$1' + k + '=' + v);
-            }
-
-            function appendQueryParam(k, v) {
-                return queryHasNoParams()
-                    ? '?' + k + '=' + v
-                    : location.search + '&' + k + '=' + v;
             }
 
             function setUrl(query) {
@@ -129,7 +122,19 @@
                 window.history.replaceState({}, '360°', url + query);
             }
 
-            function queryHasParamAndValue(k, v) {
+            function replaceInQuery(k, v) {
+                return location.search.replace(
+                    new RegExp('([&?])' + k + '=[^&]*'),
+                    '$1' + k + '=' + v);
+            }
+
+            function appendToQuery(k, v) {
+                return queryIsEmpty()
+                    ? '?' + k + '=' + v
+                    : location.search + '&' + k + '=' + v;
+            }
+
+            function queryHasValue(k, v) {
                 return new RegExp('[&?]' + k + '=' + v + '(&|$)').test(location.search);
             }
 
@@ -137,9 +142,7 @@
                 return new RegExp('[&?]' + k + '=[^&]*').test(location.search);
             }
 
-            function queryHasNoParams() {
-                return !location.search;
-            }
+            function queryIsEmpty() { return !location.search; }
         </script>
     </body>
 </html>
